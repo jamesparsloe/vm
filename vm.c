@@ -7,16 +7,19 @@
 #include "compiler.h"
 #include "object.h"
 #include "memory.h"
+#include "table.h"
 
 VM vm;
 
 static void reset_stack()
 {
     vm.stack_top = vm.stack;
+    table_init(&vm.strings);
 }
 
 void vm_init()
 {
+    table_free(&vm.strings);
     reset_stack();
     vm.objects = NULL;
 }
