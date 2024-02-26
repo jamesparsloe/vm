@@ -19,13 +19,16 @@ static void reset_stack()
 
 void vm_init()
 {
-    table_free(&vm.strings);
+    table_init(&vm.globals);
+    table_init(&vm.strings);
     reset_stack();
     vm.objects = NULL;
 }
 
 void vm_free()
 {
+    table_free(&vm.globals);
+    table_free(&vm.strings);
     free_objects();
 }
 
@@ -85,6 +88,7 @@ static InterpretResult run()
 {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 #define BINARY_OP(value_type, op)                       \
     do                                                  \
     {                                                   \
@@ -130,6 +134,30 @@ static InterpretResult run()
         case OP_FALSE:
             push(BOOL_VAL(false));
             break;
+        case OP_POP:
+            pop();
+            break;
+        case OP_GET_GLOBAL:
+        {
+            ObjString *name = READ_STRING();
+            Value value;
+
+            if (!table_get(&vm.globals, name, &value))
+            {
+                runtime_error("Undefined variable '%s'.", name->chars);
+                return INTERPRET_RUNTIME_ERROR;
+            }
+
+            push(value);
+            break;
+        }
+        case OP_DEFINE_GLOBAL:
+        {
+            ObjString *name = READ_STRING();
+            table_set(&vm.globals, name, peek(0));
+            pop();
+            break;
+        }
         case OP_EQUAL:
         {
             Value b = pop();
@@ -183,10 +211,14 @@ static InterpretResult run()
             push(NUMBER_VAL(-AS_NUMBER(pop())));
             break;
         }
-        case OP_RETURN:
+        case OP_PRINT:
         {
             value_print(pop());
             printf("\n");
+            break;
+        }
+        case OP_RETURN:
+        {
             return INTERPRET_OK;
         }
         }
@@ -194,6 +226,7 @@ static InterpretResult run()
 
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
 #undef BINARY_OP
 }
 

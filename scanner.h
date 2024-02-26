@@ -35,6 +35,7 @@ typedef enum
     TOKEN_STRING,
     TOKEN_NUMBER,
     // keywords
+    TOKEN_VAR,
     TOKEN_AND,
     TOKEN_CLASS,
     TOKEN_DEF,

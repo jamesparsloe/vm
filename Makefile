@@ -1,5 +1,6 @@
 CC = gcc
 CFLAGS = -Wall
+DEBUG_FLAGS = 
 LDFLAGS = -lm
 TARGET = vm
 
@@ -11,10 +12,10 @@ OBJFILES = chunk.o compiler.o debug.o main.o memory.o object.o scanner.o table.o
 all: $(TARGET)
 
 %.o: %.c $(DEPS)
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -c -o $@ $<
 
 $(TARGET): $(OBJFILES)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(DEBUG_FLAGS) -o $@ $^ $(LDFLAGS)
 
 clean:
 	rm -f $(OBJFILES) $(TARGET) *~

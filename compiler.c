@@ -75,6 +75,21 @@ static void consume(TokenType type, const char *message)
     error_at_current(message);
 }
 
+static bool check(TokenType type)
+{
+    return parser.current.type == type;
+}
+
+static bool match(TokenType type)
+{
+    if (!check(type))
+    {
+        return false;
+    }
+    advance();
+    return true;
+}
+
 static Chunk *current_chunk()
 {
     return compiling_chunk;
@@ -133,11 +148,62 @@ static void number()
 }
 
 static void parse_precedence(Precedence precedence);
+
+static uint8_t identifier_constant(Token *name)
+{
+    return make_constant(OBJ_VAL(copy_string(name->start, name->length)));
+}
+
+static void expression();
+static void statement();
+static void declaration();
 static ParseRule *get_rule(TokenType type);
 
 static void expression()
 {
     parse_precedence(PREC_ASSIGNMENT);
+}
+
+static void print_statement()
+{
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after value.");
+    emit_byte(OP_PRINT);
+}
+
+static void synchronize()
+{
+    parser.panic_mode = false;
+
+    while (parser.current.type != TOKEN_EOF)
+    {
+        if (parser.previous.type == TOKEN_SEMICOLON)
+            return;
+
+        switch (parser.current.type)
+        {
+        case TOKEN_CLASS:
+        case TOKEN_DEF:
+        case TOKEN_IF:
+        case TOKEN_FOR:
+        case TOKEN_WHILE:
+        case TOKEN_PRINT:
+        case TOKEN_RETURN:
+            return;
+        default:
+            // Do nothing.
+            ;
+        }
+
+        advance();
+    }
+}
+
+static void expression_statement()
+{
+    expression();
+    consume(TOKEN_SEMICOLON, "Expect ';' after expression.");
+    emit_byte(OP_POP);
 }
 
 static void grouping()
@@ -160,7 +226,6 @@ static void unary()
     case TOKEN_MINUS:
         emit_byte(OP_NEGATE);
         break;
-
     default:
         return;
     }
@@ -233,6 +298,17 @@ static void string()
     emit_constant(OBJ_VAL(copy_string(parser.previous.start + 1, parser.previous.length - 2)));
 }
 
+static void named_variable(Token name)
+{
+    uint8_t arg = identifier_constant(&name);
+    emit_bytes(OP_GET_GLOBAL, arg);
+}
+
+static void variable()
+{
+    named_variable(parser.previous);
+}
+
 ParseRule rules[] = {
     [TOKEN_LEFT_PAREN] = {grouping, NULL, PREC_NONE},
     [TOKEN_RIGHT_PAREN] = {NULL, NULL, PREC_NONE},
@@ -253,7 +329,7 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
-    [TOKEN_IDENTIFIER] = {NULL, NULL, PREC_NONE},
+    [TOKEN_IDENTIFIER] = {variable, NULL, PREC_NONE},
     [TOKEN_STRING] = {string, NULL, PREC_NONE},
     [TOKEN_NUMBER] = {number, NULL, PREC_NONE},
     [TOKEN_AND] = {NULL, NULL, PREC_NONE},
@@ -302,6 +378,64 @@ static void parse_precedence(Precedence precedence)
     }
 }
 
+static void statement()
+{
+    if (match(TOKEN_PRINT))
+    {
+        print_statement();
+    }
+    else
+    {
+        expression_statement();
+    }
+}
+
+static uint8_t parse_variable(const char *error_message)
+{
+    consume(TOKEN_IDENTIFIER, error_message);
+    return identifier_constant(&parser.previous);
+}
+
+static void define_variable(uint8_t global)
+{
+    emit_bytes(OP_DEFINE_GLOBAL, global);
+}
+
+static void var_declaration()
+{
+    uint8_t global = parse_variable("Expect variable name.");
+
+    if (match(TOKEN_EQUAL))
+    {
+        expression();
+    }
+    else
+    {
+        emit_byte(OP_NONE);
+    }
+
+    consume(TOKEN_SEMICOLON, "Expect ';' after variable declaration.");
+
+    define_variable(global);
+}
+
+static void declaration()
+{
+    if (match(TOKEN_VAR))
+    {
+        var_declaration();
+    }
+    else
+    {
+        statement();
+    }
+
+    if (parser.panic_mode)
+    {
+        synchronize();
+    }
+}
+
 bool compile(const char *source, Chunk *chunk)
 {
     scanner_init(source);
@@ -311,8 +445,12 @@ bool compile(const char *source, Chunk *chunk)
     parser.panic_mode = false;
 
     advance();
-    expression();
-    consume(TOKEN_EOF, "Expected end of expression.");
+
+    while (!match(TOKEN_EOF))
+    {
+        declaration();
+    }
+
     end_compiler();
 
     return !parser.had_error;

@@ -204,6 +204,8 @@ static TokenType identifier_type()
         return check_keyword(1, 5, "eturn", TOKEN_RETURN);
     case 'T':
         return check_keyword(1, 3, "rue", TOKEN_TRUE);
+    case 'v':
+        return check_keyword(1, 2, "ar", TOKEN_VAR);
     case 'w':
         return check_keyword(1, 4, "hile", TOKEN_WHILE);
     }
