@@ -3,7 +3,7 @@
 
 static int constant_instruction(const char *name, Chunk *chunk, int offset)
 {
-    u_int8_t constant = chunk->code[offset + 1];
+    uint8_t constant = chunk->code[offset + 1];
     printf("%-16s %4d '", name, constant);
     value_print(chunk->constants.values[constant]);
     printf("'\n");
@@ -41,7 +41,7 @@ int disassemble_instruction(Chunk *chunk, int offset)
         printf("%4d ", chunk->lines[offset]);
     }
 
-    u_int8_t instruction = chunk->code[offset];
+    uint8_t instruction = chunk->code[offset];
 
     switch (instruction)
     {

@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build
+      run: make
+      
+    - name: Run
+      run: ./vm lox/foo.lox
+
+    - name: Build debug version
+      run: make debug
+      
+    - name: Run debug version
+      run: ./vm-debug lox/foo.lox
