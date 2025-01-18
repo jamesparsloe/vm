@@ -17,10 +17,10 @@ jobs:
       run: make
       
     - name: Run
-      run: ./vm lox/foo.lox
+      run: ./build/release/vm lox/foo.lox
 
     - name: Build debug version
       run: make debug
       
     - name: Run debug version
-      run: ./vm-debug lox/foo.lox
+      run: ./build/debug/vm lox/foo.lox
