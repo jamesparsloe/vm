@@ -6,12 +6,12 @@ Following along with bytecode virtual machine from [Crafting Interpreters](https
 
 ```sh
 make
-./vm lox/foo.lox
+./build/release/vm lox/foo.lox
 ```
 
 For a debug build run
 
 ```sh
 make debug
-./vm-debug lox/foo.lox
+./build/debug/vm lox/foo.lox
 ```

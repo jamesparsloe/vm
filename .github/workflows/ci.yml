@@ -3,8 +3,18 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'Makefile'
+      - 'lox/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - '**.c'
+      - '**.h'
+      - 'Makefile'
+      - 'lox/**'
 
 jobs:
   build:
